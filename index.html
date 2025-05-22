@@ -38,8 +38,12 @@
       'mypass': 'VENUS PEH(PB2087)'
     };
 
-    // Google Sheet CSV 链接（你可替换成你自己的）
-    const sheetUrl = 'https://docs.google.com/spreadsheets/d/16SxQScgSCQ3pPn3awFl0USWmV2xRn-ZDgwBbrvkSkQY/edit?gid=1790616992#gid=1790616992';
+    // Google Sheet ID 和工作表名称
+    const sheetId = "16SxQScgSCQ3pPn3awFl0USWmV2xRn-ZDgwBbrvkSkQY";
+    const sheetName = "Sheet1";
+
+    // opensheet.elk.sh 生成的 JSON URL
+    const url = `https://opensheet.elk.sh/${sheetId}/${sheetName}`;
 
     async function loadDashboard() {
       const password = document.getElementById('password').value;
@@ -54,22 +58,19 @@
       }
 
       try {
-        const response = await fetch(sheetUrl);
-        const csvText = await response.text();
+        const response = await fetch(url);
+        if (!response.ok) throw new Error("网络响应错误");
 
-        const rows = csvText.trim().split('\n').slice(1); // 跳过标题
-        let total = 0;
+        const data = await response.json();
 
-        rows.forEach(row => {
-          const [name, incentive] = row.split(',').map(cell => cell.trim());
-          if (name === salesman) {
-            total += parseFloat(incentive) || 0;
-          }
-        });
+        // 根据Salesman过滤，累计Incentive
+        const total = data
+          .filter(row => row.Salesman === salesman)
+          .reduce((sum, row) => sum + parseFloat(row.Incentive || 0), 0);
 
         resultBox.innerText = `${salesman} 的总激励奖金为：${total.toFixed(2)}`;
       } catch (err) {
-        resultBox.innerText = '读取数据时出错，请稍后再试。';
+        resultBox.innerText = '读取数据失败，请检查链接或网络。';
         console.error(err);
       }
     }
