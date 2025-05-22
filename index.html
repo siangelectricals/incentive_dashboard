@@ -31,39 +31,41 @@
   <div id="result"></div>
 
   <script>
-    // 密码映射到销售员名称
-    const passwordMap = {
-      'abc123': 'JIE NEE(BS006)',
-      'xyz789': 'JING FAN(SJ094)',
-      'mypass': 'VENUS PEH(PB2087)'
-    };
-
-    // Google Sheet ID 和工作表名称
+    // Google Sheet 基础信息
     const sheetId = "16SxQScgSCQ3pPn3awFl0USWmV2xRn-ZDgwBbrvkSkQY";
-    const sheetName = "Sheet1";
+    const dataSheetName = "Sheet1"; // 激励奖金数据
+    const passSheetName = "pass";   // 密码对应表
 
-    // opensheet.elk.sh 生成的 JSON URL
-    const url = `https://opensheet.elk.sh/${sheetId}/${sheetName}`;
+    // 构建 opensheet.elk.sh URL
+    const passUrl = `https://opensheet.elk.sh/${sheetId}/${passSheetName}`;
+    const dataUrl = `https://opensheet.elk.sh/${sheetId}/${dataSheetName}`;
 
     async function loadDashboard() {
-      const password = document.getElementById('password').value;
-      const salesman = passwordMap[password];
-
+      const inputPassword = document.getElementById('password').value;
       const resultBox = document.getElementById('result');
       resultBox.innerText = '加载中...';
 
-      if (!salesman) {
-        resultBox.innerText = '密码无效，请重试。';
-        return;
-      }
-
       try {
-        const response = await fetch(url);
-        if (!response.ok) throw new Error("网络响应错误");
+        // 第一步：获取密码与销售员对应关系
+        const passResponse = await fetch(passUrl);
+        if (!passResponse.ok) throw new Error("密码表读取失败");
 
-        const data = await response.json();
+        const passData = await passResponse.json();
+        const match = passData.find(row => row.Password === inputPassword);
 
-        // 根据Salesman过滤，累计Incentive
+        if (!match) {
+          resultBox.innerText = '密码无效，请重试。';
+          return;
+        }
+
+        const salesman = match.Salesman;
+
+        // 第二步：读取激励数据并汇总奖金
+        const dataResponse = await fetch(dataUrl);
+        if (!dataResponse.ok) throw new Error("数据表读取失败");
+
+        const data = await dataResponse.json();
+
         const total = data
           .filter(row => row.Salesman === salesman)
           .reduce((sum, row) => sum + parseFloat(row.Incentive || 0), 0);
