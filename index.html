@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8" />
+  <title>Incentive Dashboard</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 30px;
+      max-width: 600px;
+    }
+    input, button {
+      padding: 8px;
+      margin: 10px 0;
+      width: 100%;
+    }
+    #result {
+      margin-top: 20px;
+      font-size: 18px;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <h2>Salesman Incentive Dashboard</h2>
+
+  <label for="password">请输入销售员密码：</label><br>
+  <input type="password" id="password" placeholder="请输入密码"><br>
+  <button onclick="loadDashboard()">查询奖金</button>
+
+  <div id="result"></div>
+
+  <script>
+    // 密码映射到销售员名称
+    const passwordMap = {
+      'abc123': 'JIE NEE(BS006)',
+      'xyz789': 'JING FAN(SJ094)',
+      'mypass': 'VENUS PEH(PB2087)'
+    };
+
+    // Google Sheet CSV 链接（你可替换成你自己的）
+    const sheetUrl = 'https://docs.google.com/spreadsheets/d/1hXcYwg7F6f8HznkeeMsacEZ54RZFsDvAgzpBXq01ZIc/edit?usp=drive_link';
+
+    async function loadDashboard() {
+      const password = document.getElementById('password').value;
+      const salesman = passwordMap[password];
+
+      const resultBox = document.getElementById('result');
+      resultBox.innerText = '加载中...';
+
+      if (!salesman) {
+        resultBox.innerText = '密码无效，请重试。';
+        return;
+      }
+
+      try {
+        const response = await fetch(sheetUrl);
+        const csvText = await response.text();
+
+        const rows = csvText.trim().split('\n').slice(1); // 跳过标题
+        let total = 0;
+
+        rows.forEach(row => {
+          const [name, incentive] = row.split(',').map(cell => cell.trim());
+          if (name === salesman) {
+            total += parseFloat(incentive) || 0;
+          }
+        });
+
+        resultBox.innerText = `${salesman} 的总激励奖金为：${total.toFixed(2)}`;
+      } catch (err) {
+        resultBox.innerText = '读取数据时出错，请稍后再试。';
+        console.error(err);
+      }
+    }
+  </script>
+</body>
+</html>
